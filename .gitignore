@@ -4,6 +4,8 @@
 ### Matlab ###
 # Windows default autosave extension
 *.asv
+# Matlab data file
+*.mat
 
 # OSX / *nix default autosave extension
 *.m~
