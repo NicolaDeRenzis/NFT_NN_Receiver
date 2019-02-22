@@ -1,0 +1,51 @@
+# cywgin
+
+ssh nidre@login3.hpc.dtu.dk
+
+rmate Filename # open remote file locally
+
+## start an interactive cpu session
+qrsh
+
+
+## start an interactive gpu session
+k40sh
+# see gpus
+nvidia-smi
+
+# command to select GPU
+CUDA_VISIBLE_DEVICES=1 # or 0,1,2,3 # 1 is k40
+
+# run code with GPUs
+ptyhon3 myscript.py
+
+
+
+### more cheats
+# to kill for rmate:
+kill $(ps -u nidre | grep "sshd" | awk '{print $1}')
+
+# see all available modules
+module avail
+
+# tensorflow ATTENTION cpu and gpu
+module load python3/3.6.2
+module load numpy/1.13.1-python-3.6.2-openblas-0.2.20
+module load scipy/0.19.1-python-3.6.2
+module load matplotlib/2.0.2-python-3.6.2
+module load tensorflow/1.12-gpu-python-3.6.2
+CUDA_VISIBLE_DEVICES=1
+
+## tensorboard
+# portmapping with ssh
+ssh -L 16008:127.0.0.1:6008 nidre@login3.hpc.dtu.dk
+
+module load tensorflow/1.12-cpu-python-3.6.2
+tensorboard --logdir=tboard --port=6008
+
+# now call localhost:16008 in your browser
+
+
+
+## follow logfile
+tail -f log.txt

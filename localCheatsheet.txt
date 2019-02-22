@@ -1,0 +1,18 @@
+# see https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
+
+# install
+conda create -n tflow112 python=3.6 pip scipy jupyter matplotlib
+
+conda activate tflow112
+
+pip install tensorflow
+
+deactivate
+
+# run
+# open anaconda prompt
+conda activate tflow112
+cd ..
+jupyter notebook
+# or
+python myscript.py
