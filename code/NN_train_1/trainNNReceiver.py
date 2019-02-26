@@ -13,7 +13,7 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 #idx = int(args['n'])
 idx = int(1);
 
-rootPath = '/work1/rajo/setup_nftTransmission/20171114_40km/neuralNetworkTraining2'
+rootPath = 'C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\NN_train_1'
 
 cases = ['nHiddenUnits','trainingData','samples'] # 4*120 / 4*120 / 4*120
 nSimulations = 120
