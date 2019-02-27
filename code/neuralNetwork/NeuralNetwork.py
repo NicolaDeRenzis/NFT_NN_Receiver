@@ -89,7 +89,7 @@ def train(X,Y,inputNorm,params,paths):
     
     # In[30]:
     n_input = X_train.shape[1]
-    n_ouput = Y.shape[1]
+    n_output = Y.shape[1]
     n_hidden_1 = params.nHiddenUnits
     
     # In[31]:
@@ -97,15 +97,15 @@ def train(X,Y,inputNorm,params,paths):
     np.random.seed(params.seed)
     
     x = tf.placeholder(shape=[None, n_input], dtype=tf.float32)
-    y = tf.placeholder(shape=[None, n_ouput], dtype=tf.float32)
+    y = tf.placeholder(shape=[None, n_output], dtype=tf.float32)
     
     weights = {
         'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-        'out': tf.Variable(tf.random_normal([n_hidden_1, n_ouput]))
+        'out': tf.Variable(tf.random_normal([n_hidden_1, n_output]))
     }
     biases = {
         'b1': tf.Variable(tf.random_normal([n_hidden_1])),
-        'out': tf.Variable(tf.random_normal([n_ouput]))
+        'out': tf.Variable(tf.random_normal([n_output]))
     }
     
     pred = multilayer_perceptron(x, weights, biases)
