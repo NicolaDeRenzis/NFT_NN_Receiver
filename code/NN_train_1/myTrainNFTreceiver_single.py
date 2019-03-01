@@ -1,6 +1,9 @@
+import matplotlib.pyplot as plt
 import sys, os, math
 import scipy.io
+import h5py # need to load .mat files
 import numpy as np
+import tensorflow as tf
 # sys.path.append("/work1/rajo/setup_nftTransmission/neuralNetwork")
 sys.path.append("C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\neuralNetwork")
 import NeuralNetwork # imports the functions from the path above
@@ -17,22 +20,44 @@ rootPath = 'C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\NN_train_1'
 
 nSimulations = 120
 
-default = {'beta': 0,
-           'nHiddenUnits': 128,
-           'trainingData': 100000,
-           'samples': 16}
-
-
 # idx and sweep
-
 python_idx = idx-1
 python_idx = int(python_idx%nSimulations)
 case = 'single'
 print('python_idx: ', python_idx)
 
-samples = default['samples']
-matfilesPath = '../trace_201711160210_coherent_'+str(samples)
+# Load MAT file
+matfilesPath = 'traces';
+class filterParams:
+    exist = True;
+#    def getSingleTrace(self, listOfTraces):
+#        for i in length self.fields 
+        
+    
+filterParams.nPoints = 64;
+matfiles = NeuralNetwork.listFiles(matfilesPath)
 
+fname = os.path.join(matfilesPath,matfiles[python_idx])
+print(fname)
+output = h5py.File(fname);
+#output = scipy.io.loadmat(fname)
+
+X = np.transpose(np.array(output['Y'])); # Y[:,0] is real signal, Y[:,1] is imaginary
+class traceParams:
+    exist = True;
+    
+traceParams.samples = np.int(np.array(output['traceAndSetupParameters/INFT/nPoints']));
+traceParams.nModes = np.int(np.array(output['traceAndSetupParameters/tx/nModes']));
+traceParams.nEigs = np.int(np.array(output['traceAndSetupParameters/txDiscrete/nEigenvalues']));
+traceParams.M = np.int(np.array(output['traceAndSetupParameters/txDiscrete/M']));
+traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMSymbols']));
+
+print(X.shape)
+
+default = {'beta': 0,
+           'nHiddenUnits': traceParams.nModes*traceParams.samples*2*2,
+           'trainingData': traceParams.nSymbols,
+           'samples': traceParams.samples}
 # Param
 params = NeuralNetwork.defaultParams()
 params.N_train          = int( 0.9*default['trainingData'] )
@@ -56,24 +81,28 @@ paths.saveRoot          = os.path.join(rootPath, 'trainedNN')
 paths.saveDir           = case
 paths.savePrefix        = 'NN'
 
-# Load MAT file
-matfiles = NeuralNetwork.listFiles(matfilesPath)
-fname = os.path.join(matfilesPath,matfiles[python_idx])
-print(fname)
-output = scipy.io.loadmat(fname)
 
-X = output['Y']
-
-print(X.shape)
 
 inputNorm = np.max(X[:,:])
-X = np.concatenate( (X[:,0].reshape((100000,samples)),X[:,1].reshape((100000,samples))),axis=1)/inputNorm
+# the next line concatenates real and imag part of the signal, grouping the sampels by NFDM symbols
+X = np.concatenate( (X[:,0].reshape((traceParams.nSymbols,traceParams.samples)),X[:,1].reshape((traceParams.nSymbols,traceParams.samples))),axis=1)/inputNorm
 
-print(samples)
+print(traceParams.samples)
 print(X.shape)
 
-Y = scipy.io.loadmat('decisionMatrix.mat')
-Y = Y['decisionMatrix']
+#tmp = scipy.io.loadmat('decisionMatrix.mat');
+Y = h5py.File('09-39-27__OSNR=2e1_rngSeed=1-decisionMatrix.mat')
+Y = np.array(Y['decisionIdx']);
+
+maxPoss = traceParams.nModes*traceParams.nEigs*traceParams.M;
+Y_ = tf.cast( tf.one_hot(Y,maxPoss), tf.uint8)
+sess = tf.Session()
+Y = sess.run(Y_);
+Y = Y[0,:,:];
+#plt.figure();
+#plt.plot(X[3,:])
+#plt.show();
+
 
 NeuralNetwork.train(X,Y,inputNorm,params,paths)
 

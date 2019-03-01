@@ -109,8 +109,10 @@ def train(X,Y,inputNorm,params,paths):
     }
     
     pred = multilayer_perceptron(x, weights, biases)
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=pred), reduction_indices=[1])
- 
+#    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred), reduction_indices=[1])
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred))
+#    cost = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred);
+    
     optimizer = tf.train.AdamOptimizer(learning_rate=params.learning_rate).minimize(cost)    
     correct_prediction = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))    
