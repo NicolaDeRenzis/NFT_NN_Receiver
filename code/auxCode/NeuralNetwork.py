@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 import scipy.io
@@ -67,8 +68,8 @@ def listFiles(matfilesPath):
 def multilayer_perceptron(x, weights, biases):
     # Hidden layer with RELU activation
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    layer_1 = tf.nn.sigmoid(layer_1)
-    #layer_1 = tf.nn.tanh(layer_1)
+#    layer_1 = tf.nn.sigmoid(layer_1)
+    layer_1 = tf.nn.tanh(layer_1)
     # Output layer with linear activation
     out_layer = tf.nn.softmax(tf.matmul(layer_1, weights['out']) + biases['out'])
     return out_layer
@@ -126,14 +127,16 @@ def train(X,Y,inputNorm,params,paths):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
         
-    best_test = 0
-    last_improvement = 0
+    best_test = [];
+    last_improvement = [];
     require_improvement = 20
     
     session.run(init)
     
     out_train_error = np.zeros(params.training_epochs)
     out_test_error = np.zeros(params.training_epochs)
+    out_train_acc = np.zeros(params.training_epochs)
+    out_test_acc = np.zeros(params.training_epochs)
     
     for epoch in range(params.training_epochs):
         avg_cost = 0.
@@ -151,12 +154,14 @@ def train(X,Y,inputNorm,params,paths):
         
         out_train_error[epoch] = c_train
         out_test_error[epoch] = c_test
+        out_train_acc[epoch] = a_train
+        out_test_acc[epoch] = a_test
         if epoch % params.display_step == 0:
             print("Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost), "\ttrain=", "{:.9f}".format(c_train), "\ttest=", "{:.9f}".format(c_test) )
             print("Accuracy:", "\ttrain=", "{:.9f}".format(a_train), "\ttest=", "{:.9f}".format(a_test) )
             print("#####")
             
-        if c_test < best_test or epoch==0:
+        if epoch == 0 or c_test < best_test:
             # Update the best-known validation accuracy.
             best_test = c_test
             # Set the iteration for the last improvement to current.
@@ -175,3 +180,12 @@ def train(X,Y,inputNorm,params,paths):
         print(x.shape)
     
     scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm})
+    
+    plt.plot(range(1,epoch), out_test_acc[1:epoch])
+    plt.show();
+    plt.plot( range(1,epoch), out_test_error[1:epoch]);
+    plt.show();
+    plt.plot(range(1,epoch), out_train_acc[1:epoch])
+    plt.show();
+    plt.plot(range(1,epoch), out_train_error[1:epoch]);
+    plt.show();
