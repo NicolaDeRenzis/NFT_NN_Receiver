@@ -5,8 +5,9 @@ import h5py # need to load .mat files
 import numpy as np
 import tensorflow as tf
 # sys.path.append("/work1/rajo/setup_nftTransmission/neuralNetwork")
-sys.path.append("C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\neuralNetwork")
+sys.path.append("C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\auxCode")
 import NeuralNetwork # imports the functions from the path above
+import traceLoader
 
 import argparse
 parser = argparse.ArgumentParser(description='Submit Job Array to cluster')
@@ -28,19 +29,13 @@ print('python_idx: ', python_idx)
 
 # Load MAT file
 matfilesPath = 'traces';
-class filterParams:
-    exist = True;
-#    def getSingleTrace(self, listOfTraces):
-#        for i in length self.fields 
-        
-    
-filterParams.nPoints = 64;
-matfiles = NeuralNetwork.listFiles(matfilesPath)
+filterParams = {
+        'nPoints' : 64,
+        'OSNR'    : 20}
 
-fname = os.path.join(matfilesPath,matfiles[python_idx])
-print(fname)
-output = h5py.File(fname);
-#output = scipy.io.loadmat(fname)
+traceLoaderObj = traceLoader.TraceLoader;
+traceLoaderObj.traceFilter(traceLoaderObj, filterParams);
+output = traceLoaderObj.loadTrace(traceLoaderObj, matfilesPath);
 
 X = np.transpose(np.array(output['Y'])); # Y[:,0] is real signal, Y[:,1] is imaginary
 class traceParams:
@@ -54,7 +49,7 @@ traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMS
 
 print(X.shape)
 
-default = {'beta': 0,
+default = {'beta': 1e-5,
            'nHiddenUnits': traceParams.nModes*traceParams.samples*2*2,
            'trainingData': traceParams.nSymbols,
            'samples': traceParams.samples}
@@ -87,12 +82,17 @@ inputNorm = np.max(X[:,:])
 # the next line concatenates real and imag part of the signal, grouping the sampels by NFDM symbols
 X = np.concatenate( (X[:,0].reshape((traceParams.nSymbols,traceParams.samples)),X[:,1].reshape((traceParams.nSymbols,traceParams.samples))),axis=1)/inputNorm
 
+#X = X + np.random.randn(traceParams.nSymbols, traceParams.samples*2)*math.sqrt(0.05);
+X = X + 1*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
+plt.plot(X[0,:])
+plt.show();
+
 print(traceParams.samples)
 print(X.shape)
 
 #tmp = scipy.io.loadmat('decisionMatrix.mat');
 Y = h5py.File('09-39-27__OSNR=2e1_rngSeed=1-decisionMatrix.mat')
-Y = np.array(Y['decisionIdx']);
+Y = np.array(Y['decisionIdx'])-1;
 
 maxPoss = traceParams.nModes*traceParams.nEigs*traceParams.M;
 Y_ = tf.cast( tf.one_hot(Y,maxPoss), tf.uint8)
