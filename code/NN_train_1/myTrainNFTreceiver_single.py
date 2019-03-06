@@ -15,7 +15,7 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 #args = vars(parser.parse_args())
 #print('LSB Job Index:', args['n'])
 #idx = int(args['n'])
-idx = int(1);
+idx = int(3);
 
 rootPath = 'C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\NN_train_1'
 
@@ -30,12 +30,15 @@ print('python_idx: ', python_idx)
 # Load MAT file
 matfilesPath = 'traces';
 filterParams = {
-        'nPoints' : 64,
-        'OSNR'    : 20}
+        'nEigenvalues'    : 2,
+        'bbfilterEnabled' : 1,
+        'nPoints'         : 64,
+        'OSNR'            : 10}
 
 traceLoaderObj = traceLoader.TraceLoader;
 traceLoaderObj.traceFilter(traceLoaderObj, filterParams);
 output = traceLoaderObj.loadTrace(traceLoaderObj, matfilesPath);
+print(traceLoaderObj.loadedTrace)
 
 X = np.transpose(np.array(output['Y'])); # Y[:,0] is real signal, Y[:,1] is imaginary
 class traceParams:
@@ -49,8 +52,9 @@ traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMS
 
 print(X.shape)
 
-default = {'beta': 1e-5,
-           'nHiddenUnits': traceParams.nModes*traceParams.samples*2*2,
+default = {'beta': 0,
+#           'nHiddenUnits': traceParams.nModes*traceParams.samples*2*2,
+           'nHiddenUnits': 32, # 64 good for 1 eig
            'trainingData': traceParams.nSymbols,
            'samples': traceParams.samples}
 # Param
@@ -61,7 +65,7 @@ params.beta             = default['beta']
 params.nHiddenUnits     = default['nHiddenUnits']
 params.idx              = python_idx+1
 params.sweep_idx        = 1
-params.learning_rate    = 0.01
+params.learning_rate    = 0.01;
 params.seed             = 1
 
 
@@ -82,23 +86,29 @@ inputNorm = np.max(X[:,:])
 # the next line concatenates real and imag part of the signal, grouping the sampels by NFDM symbols
 X = np.concatenate( (X[:,0].reshape((traceParams.nSymbols,traceParams.samples)),X[:,1].reshape((traceParams.nSymbols,traceParams.samples))),axis=1)/inputNorm
 
-#X = X + np.random.randn(traceParams.nSymbols, traceParams.samples*2)*math.sqrt(0.05);
-X = X + 1*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
+X = X + 0.05*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
 plt.plot(X[0,:])
+plt.plot(X[3,:])
+plt.plot(X[5,:])
+plt.plot(X[13,:])
+plt.plot(X[14,:])
+plt.plot(X[17,:])
 plt.show();
 
 print(traceParams.samples)
 print(X.shape)
 
 #tmp = scipy.io.loadmat('decisionMatrix.mat');
-Y = h5py.File('09-39-27__OSNR=2e1_rngSeed=1-decisionMatrix.mat')
+Y = h5py.File('nEigenvalues=2_rngSeed=1_nPoints=64-decisionMatrix.mat')
 Y = np.array(Y['decisionIdx'])-1;
 
-maxPoss = traceParams.nModes*traceParams.nEigs*traceParams.M;
+maxPoss = traceParams.nModes*np.power(traceParams.M,(traceParams.nEigs));
 Y_ = tf.cast( tf.one_hot(Y,maxPoss), tf.uint8)
 sess = tf.Session()
 Y = sess.run(Y_);
 Y = Y[0,:,:];
+print( Y[ [0,3,5,13,14,17], : ] )
+
 #plt.figure();
 #plt.plot(X[3,:])
 #plt.show();

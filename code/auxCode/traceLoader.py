@@ -31,8 +31,8 @@ class TraceLoader:
             fname = os.path.join(matfilesPath, correctTracesName[traceToLoad])
             self.loadedTrace = correctTracesName[traceToLoad]
             return h5py.File(fname)
-            print([fname + ' loaded'])
         else:
+            self.loadedTrace = [];
             return -1
         
     def listFiles(self, matfilesPath):

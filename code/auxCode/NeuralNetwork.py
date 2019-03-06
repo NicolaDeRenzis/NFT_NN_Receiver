@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import scipy.io
 import os, sys, math
+tf.reset_default_graph()
 
 class defaultParams:
     N_train=90000
@@ -17,6 +18,7 @@ class defaultParams:
     idx=1
     sweep_idx=1
     nPCs=10
+    activation = 'tanh';
 
 class defaultPaths:
     checkpointRoot      = ''
@@ -65,11 +67,13 @@ def listFiles(matfilesPath):
     matfiles.sort()
     return matfiles
 
-def multilayer_perceptron(x, weights, biases):
+def multilayer_perceptron(x, weights, biases, activation):
     # Hidden layer with RELU activation
     layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-#    layer_1 = tf.nn.sigmoid(layer_1)
-    layer_1 = tf.nn.tanh(layer_1)
+    if activation == 'sigmoid':
+        layer_1 = tf.nn.sigmoid(layer_1)
+    elif activation == 'tanh':
+        layer_1 = tf.nn.tanh(layer_1)
     # Output layer with linear activation
     out_layer = tf.nn.softmax(tf.matmul(layer_1, weights['out']) + biases['out'])
     return out_layer
@@ -109,10 +113,10 @@ def train(X,Y,inputNorm,params,paths):
         'out': tf.Variable(tf.random_normal([n_output]))
     }
     
-    pred = multilayer_perceptron(x, weights, biases)
-#    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred), reduction_indices=[1])
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred))
-#    cost = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred);
+    activation = defaultParams.activation
+    pred = multilayer_perceptron(x, weights, biases, activation )
+    smax = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred, dim=1)
+    cost = tf.reduce_mean(smax)
     
     optimizer = tf.train.AdamOptimizer(learning_rate=params.learning_rate).minimize(cost)    
     correct_prediction = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
@@ -127,9 +131,9 @@ def train(X,Y,inputNorm,params,paths):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
         
-    best_test = [];
+    best_test = 1e5;
     last_improvement = [];
-    require_improvement = 20
+    require_improvement = 40
     
     session.run(init)
     
@@ -148,10 +152,10 @@ def train(X,Y,inputNorm,params,paths):
             batch_y_train = Y_train[shuffled_idx[i:i+params.batch_size],:]
             _, c = session.run([optimizer, cost], feed_dict={x: batch_x_train, y: batch_y_train})
             avg_cost += c / total_batch
-        
+    
         c_train, a_train = session.run([cost, accuracy], feed_dict={x: X_train, y: Y_train})
         c_test, a_test = session.run([cost, accuracy], feed_dict={x: X_test, y: Y_test})
-        
+    
         out_train_error[epoch] = c_train
         out_test_error[epoch] = c_test
         out_train_acc[epoch] = a_train
@@ -162,6 +166,7 @@ def train(X,Y,inputNorm,params,paths):
             print("#####")
             
         if epoch == 0 or c_test < best_test:
+            print( 'saving state at epoch {}'.format(epoch) )
             # Update the best-known validation accuracy.
             best_test = c_test
             # Set the iteration for the last improvement to current.
@@ -179,7 +184,7 @@ def train(X,Y,inputNorm,params,paths):
     for x in myVars:
         print(x.shape)
     
-    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm})
+    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm, 'activation':activation })
     
     plt.plot(range(1,epoch), out_test_acc[1:epoch])
     plt.show();
