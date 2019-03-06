@@ -5,7 +5,7 @@ import h5py # need to load .mat files
 import numpy as np
 import tensorflow as tf
 # sys.path.append("/work1/rajo/setup_nftTransmission/neuralNetwork")
-sys.path.append("C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\auxCode")
+sys.path.append("/zhome/df/1/113755/Code/NFT_NN_receiver/code/auxCode")
 import NeuralNetwork # imports the functions from the path above
 import traceLoader
 
@@ -15,9 +15,9 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 #args = vars(parser.parse_args())
 #print('LSB Job Index:', args['n'])
 #idx = int(args['n'])
-idx = int(3);
+idx = int(1);
 
-rootPath = 'C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\NN_train_1'
+rootPath = '/zhome/df/1/113755/Code/NFT_NN_receiver/code/auxCode/NN_train_2'
 
 nSimulations = 120
 
@@ -28,28 +28,39 @@ case = 'single'
 print('python_idx: ', python_idx)
 
 # Load MAT file
-matfilesPath = 'traces';
+matfilesPath = '/work2/nidre/equalizers/generation/toCluster/lossless_noiseless/DCh_spans_sweep';
 filterParams = {
-        'nEigenvalues'    : 2,
-        'bbfilterEnabled' : 1,
-        'nPoints'         : 64,
-        'OSNR'            : 10}
+        'nEigenvalues'    : 1,
+#        'bbfilterEnabled' : 1,
+#        'nPoints'         : 64,
+#        'OSNR'            : 10,
+        'nSpans'          : 20,
+        'inspectLength'   : 1e3}
 
 traceLoaderObj = traceLoader.TraceLoader;
 traceLoaderObj.traceFilter(traceLoaderObj, filterParams);
 output = traceLoaderObj.loadTrace(traceLoaderObj, matfilesPath);
 print(traceLoaderObj.loadedTrace)
 
-X = np.transpose(np.array(output['Y'])); # Y[:,0] is real signal, Y[:,1] is imaginary
 class traceParams:
     exist = True;
-    
-traceParams.samples = np.int(np.array(output['traceAndSetupParameters/INFT/nPoints']));
-traceParams.nModes = np.int(np.array(output['traceAndSetupParameters/tx/nModes']));
-traceParams.nEigs = np.int(np.array(output['traceAndSetupParameters/txDiscrete/nEigenvalues']));
-traceParams.M = np.int(np.array(output['traceAndSetupParameters/txDiscrete/M']));
-traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMSymbols']));
+### NEW CONFIG PARAMS     
+#traceParams.samples = np.int(np.array(output['traceAndSetupParameters/INFT/nPoints']));
+#traceParams.nModes = np.int(np.array(output['traceAndSetupParameters/tx/nModes']));
+#traceParams.nEigs = np.int(np.array(output['traceAndSetupParameters/txDiscrete/nEigenvalues']));
+#traceParams.M = np.int(np.array(output['traceAndSetupParameters/txDiscrete/M']));
+#traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMSymbols']));
 
+## OLD CONFIG PARAMS
+if traceLoaderObj.version == '-v6':
+    traceParams.samples = np.int(np.array(output['traceAndSetupParameters']['INFT'][0][0]['nPoints']));
+    traceParams.nModes = np.int(np.array(output['traceAndSetupParameters']['nModes']));
+    traceParams.nEigs = np.int(np.array(output['traceAndSetupParameters']['nEigenvalues']));
+    traceParams.M = np.int(np.array(output['traceAndSetupParameters']['M']));
+    traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters']['nNFDMSymbols']));
+    X = np.array(output['Y']); # Y[:,0] is real signal, Y[:,1] is imaginary
+else:
+    X = np.transpose(np.array(output['Y'])); # Y[:,0] is real signal, Y[:,1] is imaginary
 print(X.shape)
 
 default = {'beta': 0,
@@ -87,19 +98,20 @@ inputNorm = np.max(X[:,:])
 X = np.concatenate( (X[:,0].reshape((traceParams.nSymbols,traceParams.samples)),X[:,1].reshape((traceParams.nSymbols,traceParams.samples))),axis=1)/inputNorm
 
 X = X + 0.05*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
+plt.figure()
 plt.plot(X[0,:])
 plt.plot(X[3,:])
 plt.plot(X[5,:])
 plt.plot(X[13,:])
 plt.plot(X[14,:])
 plt.plot(X[17,:])
-plt.show();
 
 print(traceParams.samples)
 print(X.shape)
 
 #tmp = scipy.io.loadmat('decisionMatrix.mat');
-Y = h5py.File('nEigenvalues=2_rngSeed=1_nPoints=64-decisionMatrix.mat')
+# create decision matrix
+Y = h5py.File(os.path.join(matfilesPath,'decisionMatrix.mat'))
 Y = np.array(Y['decisionIdx'])-1;
 
 maxPoss = traceParams.nModes*np.power(traceParams.M,(traceParams.nEigs));

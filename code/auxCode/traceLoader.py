@@ -30,9 +30,11 @@ class TraceLoader:
             self.loadedTrace = correctTracesName[traceToLoad]
             try:
                 import scipy.io
+                self.version = '-v6'
                 return scipy.io.loadmat(fname)
             except NotImplementedError:
                 import h5py
+                self.version = '-v7.3'
                 return h5py.File(fname) 
             except:
                 ValueError('could not read at all...')
