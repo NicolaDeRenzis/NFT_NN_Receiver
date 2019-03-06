@@ -186,11 +186,12 @@ def train(X,Y,inputNorm,params,paths):
     
     scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm, 'activation':activation })
     
+    plt.figure();
     plt.plot(range(1,epoch), out_test_acc[1:epoch])
-    plt.show();
+    plt.figure();
     plt.plot( range(1,epoch), out_test_error[1:epoch]);
-    plt.show();
+    plt.figure();
     plt.plot(range(1,epoch), out_train_acc[1:epoch])
-    plt.show();
+    plt.figure();
     plt.plot(range(1,epoch), out_train_error[1:epoch]);
-    plt.show();
+    

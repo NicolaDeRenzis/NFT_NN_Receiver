@@ -17,7 +17,7 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 #idx = int(args['n'])
 idx = int(1);
 
-rootPath = '/zhome/df/1/113755/Code/NFT_NN_receiver/code/auxCode/NN_train_2'
+rootPath = '/zhome/df/1/113755/Code/NFT_NN_receiver/code/NN_train_2'
 
 nSimulations = 120
 
