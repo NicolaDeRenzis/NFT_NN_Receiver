@@ -1,6 +1,4 @@
-import sys, os, math
-import scipy.io
-import h5py # need to load .mat files
+import os
 import numpy as np
 
 class TraceLoader:
@@ -30,7 +28,15 @@ class TraceLoader:
         if len(correctTracesName) > 0:
             fname = os.path.join(matfilesPath, correctTracesName[traceToLoad])
             self.loadedTrace = correctTracesName[traceToLoad]
-            return h5py.File(fname)
+            try:
+                import scipy.io
+                return scipy.io.loadmat(fname)
+            except NotImplementedError:
+                import h5py
+                return h5py.File(fname) 
+            except:
+                ValueError('could not read at all...')
+                                          
         else:
             self.loadedTrace = [];
             return -1
