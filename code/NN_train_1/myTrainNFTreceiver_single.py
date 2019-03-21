@@ -15,11 +15,22 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 #args = vars(parser.parse_args())
 #print('LSB Job Index:', args['n'])
 #idx = int(args['n'])
-idx = int(3);
+
 
 rootPath = 'C:\\Users\\nidre\\rasmus\\NFT_NN_Receiver\\code\\NN_train_1'
 
-nSimulations = 120
+nSimulations = 220
+
+############ CHOSE MODE TO OPERATE
+
+mode = 'regression'; # or 'regression'
+# 1: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR
+# 2: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR new file
+# 3: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 20
+# 4: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 10
+idx = int(4); # idx to save the NN parameters
+
+############
 
 # idx and sweep
 python_idx = idx-1
@@ -28,12 +39,23 @@ case = 'single'
 print('python_idx: ', python_idx)
 
 # Load MAT file
-matfilesPath = 'traces';
+#matfilesPath = 'traces';
+#matfilesPath = 'traces_PNL';
+
+if mode == 'classification':
+    matfilesPath = 'traces_PN_OSNR'; # after the training for PhaseNoise
+elif mode == 'regression': # to train for phaseNoise
+    matfilesPath = 'traces_PN';
+    
+#matfilesPath = 'traces_PNL';    
 filterParams = {
-        'nEigenvalues'    : 2,
-        'bbfilterEnabled' : 1,
+        'nEigenvalues'    : 1,
+#        'bbfilterEnabled' : 0,
         'nPoints'         : 64,
-        'OSNR'            : 10}
+        'nNFDMSymbols'        : 5e5,
+#        'linewidth'       : 1e4,
+        'OSNR'            : 10} # 1e500
+#}
 
 traceLoaderObj = traceLoader.TraceLoader;
 traceLoaderObj.traceFilter(traceLoaderObj, filterParams);
@@ -49,25 +71,25 @@ traceParams.nModes = np.int(np.array(output['traceAndSetupParameters/tx/nModes']
 traceParams.nEigs = np.int(np.array(output['traceAndSetupParameters/txDiscrete/nEigenvalues']));
 traceParams.M = np.int(np.array(output['traceAndSetupParameters/txDiscrete/M']));
 traceParams.nSymbols = np.int(np.array(output['traceAndSetupParameters/tx/nNFDMSymbols']));
+traceParams.targets = np.array(output['targets']);
 
 print(X.shape)
 
-default = {'beta': 0,
-#           'nHiddenUnits': traceParams.nModes*traceParams.samples*2*2,
-           'nHiddenUnits': 32, # 64 good for 1 eig
-           'trainingData': traceParams.nSymbols,
-           'samples': traceParams.samples}
 # Param
 params = NeuralNetwork.defaultParams()
-params.N_train          = int( 0.9*default['trainingData'] )
-params.N_test           = int( 0.1*default['trainingData'] )
-params.beta             = default['beta']
-params.nHiddenUnits     = default['nHiddenUnits']
+params.trainingData     = traceParams.nSymbols
+params.N_train          = int( 0.9*params.trainingData )
+params.N_test           = int( 0.1*params.trainingData )
+params.beta             = 0
+#params.nHiddenUnits     = 32 # 64 good for 1 eig, 32 for 2 eig. No Phase noise in B2B
+params.nHiddenUnits     = 32 # PhaseNoise in B2B
 params.idx              = python_idx+1
 params.sweep_idx        = 1
 params.learning_rate    = 0.01;
 params.seed             = 1
-
+params.activation       = 'sigmoid';
+params.batch_size       = 2500; #params.N_train; # 2500
+params.mode             = mode
 
 attributes = [(attr,getattr(params, attr)) for attr in dir(params) if not attr.startswith('__')]
 print(attributes)
@@ -76,7 +98,7 @@ print(attributes)
 paths = NeuralNetwork.defaultPaths()
 paths.checkpointRoot    = os.path.join(rootPath, 'tflowCheckpoints')
 paths.checkpointDir     = case
-paths.saveRoot          = os.path.join(rootPath, 'trainedNN')
+paths.saveRoot          = os.path.join(rootPath, 'trainedNN', mode)
 paths.saveDir           = case
 paths.savePrefix        = 'NN'
 
@@ -85,8 +107,17 @@ paths.savePrefix        = 'NN'
 inputNorm = np.max(X[:,:])
 # the next line concatenates real and imag part of the signal, grouping the sampels by NFDM symbols
 X = np.concatenate( (X[:,0].reshape((traceParams.nSymbols,traceParams.samples)),X[:,1].reshape((traceParams.nSymbols,traceParams.samples))),axis=1)/inputNorm
+X_tmp = X;
 
-X = X + 0.05*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
+## add more symbols for phase noise 
+S = 1; # symbols to input
+for i in range(S-1):
+    k=i+1+1;
+    X_aux = np.roll(X_tmp, k-1, axis=0);
+    X = np.concatenate((X_aux, X), axis=1);
+
+#X = X + 0.01*np.random.normal(loc=0.0, scale=1.0, size=X.shape)
+
 plt.plot(X[0,:])
 plt.plot(X[3,:])
 plt.plot(X[5,:])
@@ -94,20 +125,51 @@ plt.plot(X[13,:])
 plt.plot(X[14,:])
 plt.plot(X[17,:])
 plt.show();
+#plt.plot(X[0,:])
+#plt.plot(X[55,:])
+#plt.plot(X[83,:])
+#plt.plot(X[99,:])
+#plt.plot(X[112,:])
+#plt.show();
 
 print(traceParams.samples)
 print(X.shape)
 
 #tmp = scipy.io.loadmat('decisionMatrix.mat');
-Y = h5py.File('nEigenvalues=2_rngSeed=1_nPoints=64-decisionMatrix.mat')
-Y = np.array(Y['decisionIdx'])-1;
+#Y = h5py.File('nEigenvalues=2_rngSeed=1_nPoints=64-decisionMatrix.mat')
+#Y = np.array(Y['decisionIdx'])-1;
+#maxPoss = traceParams.nModes*np.power(traceParams.M,(traceParams.nEigs));
 
-maxPoss = traceParams.nModes*np.power(traceParams.M,(traceParams.nEigs));
-Y_ = tf.cast( tf.one_hot(Y,maxPoss), tf.uint8)
-sess = tf.Session()
-Y = sess.run(Y_);
-Y = Y[0,:,:];
-print( Y[ [0,3,5,13,14,17], : ] )
+#Y = h5py.File('phaseNoise_1_regres.mat')
+#traceParams.targets = np.array(Y['phaseNoiseScrumbled']);
+
+
+if mode == 'classification':
+    maxPoss = traceParams.nModes*np.power(traceParams.M,(traceParams.nEigs));
+    Y_ = tf.cast( tf.one_hot(traceParams.targets ,maxPoss), tf.uint8)
+    sess = tf.Session()
+    Y = sess.run(Y_);
+    Y = Y[0,:,:];
+    
+elif mode == 'regression':
+    Y = traceParams.targets;
+
+#Y = h5py.File('phaseNoise_1.mat')
+#Y = np.transpose(np.array(Y['phaseNoise_hot'])-1);
+#maxPoss = 90;
+#
+#
+#
+#Y_ = tf.cast( tf.one_hot(Y,maxPoss), tf.uint8)
+#sess = tf.Session()
+#Y = sess.run(Y_);
+#Y = Y[0,:,:];
+
+#print( Y[ [0,3,5,13,14,17], : ] )
+#print( Y[ [0,55,83,99,112], : ] )
+
+#Y = h5py.File('phaseNoise_1_regres_pn.mat')
+#Y = np.array(Y['phaseNoiseScrumbled']);
 
 #plt.figure();
 #plt.plot(X[3,:])
