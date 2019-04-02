@@ -24,11 +24,26 @@ nSimulations = 220
 ############ CHOSE MODE TO OPERATE
 
 mode = 'regression'; # or 'regression'
-# 1: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR
-# 2: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR new file
-# 3: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 20
-# 4: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 10
-idx = int(4); # idx to save the NN parameters
+# 1 eig:
+#   1: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR
+#   2: regression, 32 hidden unit, sigmoid, lin, mse, no OSNR new file
+#   3: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 20
+#   4: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 10
+
+# 2 eig:
+#   20: regression, 64 hidden unit, sigmoid, lin, mse, no OSNR
+#   30: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 20 batch 3500
+#   40: regression, 32 hidden unit, sigmoid, lin, mse, OSNR = 10 batch 5000
+
+# 1 eig:
+#   5: classification, 64 hidden unit, tanh, softmax, crossEntr, OSNR = 20
+#   6: classification, 64 hidden unit, tanh, softmax, crossEntr, OSNR = 10
+
+# 2 eig:
+#   50: classification, 64 hidden unit, tanh, softmax, crossEntr, OSNR = 20
+#   60: classification, 32 hidden unit, tanh, softmax, crossEntr, OSNR = 10
+
+idx = int(100); # idx to save the NN parameters
 
 ############
 
@@ -49,10 +64,11 @@ elif mode == 'regression': # to train for phaseNoise
     
 #matfilesPath = 'traces_PNL';    
 filterParams = {
-        'nEigenvalues'    : 1,
+        'nEigenvalues'    : 2,
 #        'bbfilterEnabled' : 0,
         'nPoints'         : 64,
-        'nNFDMSymbols'        : 5e5,
+#        'NNReceiverPN'    : 1,
+#        'nNFDMSymbols'    : 5e5,
 #        'linewidth'       : 1e4,
         'OSNR'            : 10} # 1e500
 #}
@@ -87,7 +103,7 @@ params.idx              = python_idx+1
 params.sweep_idx        = 1
 params.learning_rate    = 0.01;
 params.seed             = 1
-params.activation       = 'sigmoid';
+params.activation       = 'tanh';
 params.batch_size       = 2500; #params.N_train; # 2500
 params.mode             = mode
 
