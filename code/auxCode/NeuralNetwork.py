@@ -214,6 +214,7 @@ def train(X,Y,inputNorm,params,paths):
             print( 'saving state at epoch {}'.format(epoch) )
             # Update the best-known validation accuracy.
             best_test = c_test
+            best_acc_class = a_test
             # Set the iteration for the last improvement to current.
             last_improvement = epoch    
             # Save all variables of the TensorFlow graph to file.
@@ -224,6 +225,8 @@ def train(X,Y,inputNorm,params,paths):
             break
             
     saver.restore(sess=session, save_path=save_path)
+    print('restored test_error = ', best_test)
+    print('restored acc_error = ', best_acc_class)
     
     myVars = [x.eval(session=session) for x in tf.trainable_variables()] # session.run(x)
     for x in myVars:
