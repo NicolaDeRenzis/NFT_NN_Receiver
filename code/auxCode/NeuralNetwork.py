@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 import scipy.io
@@ -19,6 +19,7 @@ class defaultParams:
     sweep_idx=1
     nPCs=10
     activation = 'tanh';
+    mode = 'classification';
 
 class defaultPaths:
     checkpointRoot      = ''
@@ -67,15 +68,34 @@ def listFiles(matfilesPath):
     matfiles.sort()
     return matfiles
 
-def multilayer_perceptron(x, weights, biases, activation):
-    # Hidden layer with RELU activation
-    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    if activation == 'sigmoid':
-        layer_1 = tf.nn.sigmoid(layer_1)
-    elif activation == 'tanh':
-        layer_1 = tf.nn.tanh(layer_1)
-    # Output layer with linear activation
-    out_layer = tf.nn.softmax(tf.matmul(layer_1, weights['out']) + biases['out'])
+def multilayer_perceptron(x, weights, biases, activation, mode):
+    if mode == 'classification':
+        # Hidden layer with RELU activation
+        layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
+        if activation == 'sigmoid':
+            layer_1 = tf.nn.sigmoid(layer_1)
+        elif activation == 'tanh':
+            layer_1 = tf.nn.tanh(layer_1)
+        # Output layer with linear activation
+        out_layer = tf.nn.softmax(tf.matmul(layer_1, weights['out']) + biases['out'])
+        
+    elif mode == 'regression':
+        layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
+        if activation == 'sigmoid':
+            layer_1 = tf.nn.sigmoid(layer_1)
+        elif activation == 'tanh':
+            layer_1 = tf.nn.tanh(layer_1)
+        out_layer = tf.matmul(layer_1, weights['out']) + biases['out']
+    
+#    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
+#    layer_1 = tf.nn.relu(layer_1)
+#    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
+#    layer_2 = tf.nn.tanh(layer_2)
+#    layer_3 = tf.add(tf.matmul(layer_2, weights['h3']), biases['b3'])
+#    layer_3 = tf.nn.tanh(layer_3)
+#    out_layer = tf.nn.softmax(tf.matmul(layer_3, weights['out']) + biases['out'])
+    
+    
     return out_layer
     
 def train(X,Y,inputNorm,params,paths):
@@ -97,6 +117,9 @@ def train(X,Y,inputNorm,params,paths):
     n_output = Y.shape[1]
     n_hidden_1 = params.nHiddenUnits
     
+#    n_hidden_2 = 4;
+#    n_hidden_3 = params.nHiddenUnits;
+    
     # In[31]:
     tf.set_random_seed(params.seed)
     np.random.seed(params.seed)
@@ -107,15 +130,37 @@ def train(X,Y,inputNorm,params,paths):
     weights = {
         'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
         'out': tf.Variable(tf.random_normal([n_hidden_1, n_output]))
+
+#        'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_1])),
+        
+#        'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
+#        'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
+#        'h3': tf.Variable(tf.random_normal([n_hidden_2, n_hidden_3])),
+#        'out': tf.Variable(tf.random_normal([n_hidden_3, n_output]))
+
     }
     biases = {
         'b1': tf.Variable(tf.random_normal([n_hidden_1])),
         'out': tf.Variable(tf.random_normal([n_output]))
+    
+#        'b2': tf.Variable(tf.random_normal([n_hidden_1])),
+    
+#        'b1': tf.Variable(tf.random_normal([n_hidden_1])),
+#        'b2': tf.Variable(tf.random_normal([n_hidden_2])),
+#        'b3': tf.Variable(tf.random_normal([n_hidden_3])),
+#        'out': tf.Variable(tf.random_normal([n_output]))
     }
     
-    activation = defaultParams.activation
-    pred = multilayer_perceptron(x, weights, biases, activation )
-    smax = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred, dim=1)
+    activation = params.activation
+    mode = params.mode
+    pred = multilayer_perceptron(x, weights, biases, activation, mode )
+    if mode == 'classification':
+        smax = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred, dim=1)
+    elif mode == 'regression':
+        smax = tf.losses.mean_squared_error(labels=y, predictions=pred);
+    
+#    smax = tf.pow( tf.pow(tf.cos(pred*2),2) - tf.pow(tf.cos(y*2),2) ,2);
+    
     cost = tf.reduce_mean(smax)
     
     optimizer = tf.train.AdamOptimizer(learning_rate=params.learning_rate).minimize(cost)    
@@ -169,6 +214,7 @@ def train(X,Y,inputNorm,params,paths):
             print( 'saving state at epoch {}'.format(epoch) )
             # Update the best-known validation accuracy.
             best_test = c_test
+            best_acc_class = a_test
             # Set the iteration for the last improvement to current.
             last_improvement = epoch    
             # Save all variables of the TensorFlow graph to file.
@@ -179,19 +225,21 @@ def train(X,Y,inputNorm,params,paths):
             break
             
     saver.restore(sess=session, save_path=save_path)
+    print('restored test_error = ', best_test)
+    print('restored acc_error = ', best_acc_class)
     
     myVars = [x.eval(session=session) for x in tf.trainable_variables()] # session.run(x)
     for x in myVars:
         print(x.shape)
     
-    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm, 'activation':activation })
+    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm, 'activation':activation, 'mode':mode })
+#    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'w3':myVars[2],'w4':myVars[3],'b1':myVars[4],'b2':myVars[5],'b3':myVars[6],'b4':myVars[7],'inputNorm':inputNorm, 'activation':activation })
     
-    plt.figure();
-    plt.plot(range(1,epoch), out_test_acc[1:epoch])
-    plt.figure();
-    plt.plot( range(1,epoch), out_test_error[1:epoch]);
-    plt.figure();
-    plt.plot(range(1,epoch), out_train_acc[1:epoch])
-    plt.figure();
-    plt.plot(range(1,epoch), out_train_error[1:epoch]);
-    
+    #plt.plot(range(1,epoch), out_test_acc[1:epoch])
+    #plt.show();
+    #plt.plot( range(1,epoch), out_test_error[1:epoch]);
+    #plt.show();
+    #plt.plot(range(1,epoch), out_train_acc[1:epoch])
+    #plt.show();
+    #plt.plot(range(1,epoch), out_train_error[1:epoch]);
+    #plt.show();
