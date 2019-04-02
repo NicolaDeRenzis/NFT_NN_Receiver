@@ -4,12 +4,14 @@ ssh nidre@login3.hpc.dtu.dk
 
 rmate Filename # open remote file locally
 
+# submit job 
+bsub < submitjob.sh
+
 ## start an interactive cpu session
 qrsh
-
-
 ## start an interactive gpu session
 k40sh
+
 # see gpus
 nvidia-smi
 
@@ -44,7 +46,6 @@ module load tensorflow/1.12-cpu-python-3.6.2
 tensorboard --logdir=tboard --port=6008
 
 # now call localhost:16008 in your browser
-
 
 
 ## follow logfile
