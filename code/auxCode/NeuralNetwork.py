@@ -232,7 +232,7 @@ def train(X,Y,inputNorm,params,paths):
     for x in myVars:
         print(x.shape)
     
-    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3],'inputNorm':inputNorm, 'activation':activation, 'mode':mode })
+    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'b1':myVars[2],'b2':myVars[3], 'best_test':best_test, 'best_acc_class':best_acc_class ,'inputNorm':inputNorm, 'activation':activation, 'mode':mode })
 #    scipy.io.savemat(paths.renderSavePath(params.sweep_idx,params.idx), {'w1':myVars[0],'w2':myVars[1],'w3':myVars[2],'w4':myVars[3],'b1':myVars[4],'b2':myVars[5],'b3':myVars[6],'b4':myVars[7],'inputNorm':inputNorm, 'activation':activation })
     
     #plt.plot(range(1,epoch), out_test_acc[1:epoch])
