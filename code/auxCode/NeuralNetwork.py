@@ -68,6 +68,40 @@ def listFiles(matfilesPath):
     matfiles.sort()
     return matfiles
 
+#def piecewise(x):
+#    if x>0.95*np.pi/4:
+#        y=np.pi/4;
+#    elif x<0.95*np.pi/4: 
+#        y=-np.pi/4;
+#    else:
+#        y=x;
+#    return y
+
+def satlins(x, satLev):
+#    def f1(): return tf.nn.relu(x + satLev) - satLev
+#    def f2(): return tf.negative(tf.nn.relu(satLev - x) + satLev)
+#    y = tf.cond(tf.less(tf.reduce_mean(x), tf.constant(0, dtype=tf.float32)), f1, f2)
+    
+#    def satMax(): return tf.multiply(x,tf.constant(0, dtype=tf.float32))+satLev
+#    def satMin(): return tf.multiply(x,tf.constant(0, dtype=tf.float32))+tf.negative(satLev)
+#    def lin(): return x
+#    y = tf.case({tf.less(tf.reduce_mean(x), tf.negative(satLev)): satMin,
+#                 tf.greater(tf.reduce_mean(x), satLev): satMax}, default=lin, exclusive=True)
+    
+    def satMax(): return x-satLev-satLev
+    def satMin(): return x+satLev+satLev
+    def lin(): return x
+    y = tf.case({tf.less(tf.reduce_mean(x), tf.negative(satLev)): satMin,
+                 tf.greater(tf.reduce_mean(x), satLev): satMax}, default=lin, exclusive=True)
+
+    
+#    if x <= 0:
+#        tf.subtract
+#        y = tf.nn.relu(x + satLev) - satLev
+#    else:
+#        y = tf.negative(tf.nn.relu(satLev - x) + satLev)
+    return y
+
 def multilayer_perceptron(x, weights, biases, activation, mode):
     if mode == 'classification':
         # Hidden layer with RELU activation
@@ -85,7 +119,9 @@ def multilayer_perceptron(x, weights, biases, activation, mode):
             layer_1 = tf.nn.sigmoid(layer_1)
         elif activation == 'tanh':
             layer_1 = tf.nn.tanh(layer_1)
+            
         out_layer = tf.matmul(layer_1, weights['out']) + biases['out']
+        out_layer = satlins(out_layer, tf.constant(np.pi/4, dtype=tf.float32))
     
 #    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
 #    layer_1 = tf.nn.relu(layer_1)
