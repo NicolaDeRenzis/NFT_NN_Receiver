@@ -15,6 +15,8 @@ parser.add_argument('-n', type=int, help='LSB Job Index', required=True)
 parser.add_argument('-m', type=str, help='mat file to load', required=True)
 parser.add_argument('-p', type=str, help='path where to save results', required=True)
 parser.add_argument('-o', type=str, help='operation mode', required=True)
+parser.add_argument('-b', type=str, help='operation mode', required=False)
+parser.add_argument('-u', type=str, help='operation mode', required=False)
 args = vars(parser.parse_args())
 #print('LSB Job Index:', args['n'])
 
@@ -23,32 +25,36 @@ matlabFile = str(args['m'])
 mode = str(args['o'])
 pathToSave = str(args['p'])
 
+
 #rootPath = '/zhome/df/1/113755/Code/NFT_NN_receiver/code/NN_train_2'
 
 
 
 ############ CHOSE MODE TO OPERATE
 
-batchSize = 1000;
 if mode == 'regression':
 	activationFcn = 'sigmoid';
-	nHiddneUnits = 32;
-	if idx>=15:
-		batchSize = 3500;
-	else:
-		batchSize = 5000;
+	batchSize = int(args['b'])
+	nHiddneUnits = int(args['u'])
+	#nHiddneUnits = 32;
+	#if idx>=15:
+#		batchSize = 3500;
+#	else:
+#		batchSize = 5000;
 
 elif mode == 'classification':
 	activationFcn = 'tanh';
-	if idx>=12:
-		nHiddneUnits = 64;
-		batchSize = 2500;
-	elif idx<=8:
-		nHiddneUnits = 256;
-		batchSize = 2500;
-	else:
-		nHiddneUnits = 32;
-		batchSize = 2500;
+	batchSize = int(args['b'])
+	nHiddneUnits = int(args['u'])
+#	if idx>=12:
+#		nHiddneUnits = 64;
+#		batchSize = 2500;
+#	elif idx<=8:
+#		nHiddneUnits = 256;
+#		batchSize = 2500;
+#	else:
+#		nHiddneUnits = 32;
+#		batchSize = 2500;
 
 #mode = 'classification'; # or 'regression'
 
@@ -121,10 +127,13 @@ print(attributes)
 # Param path
 paths = NeuralNetwork.defaultPaths()
 paths.checkpointDir     = case
-paths.saveRoot          = os.path.join(pathToSave, 'trainedNN', mode)
+paths.saveRoot          = os.path.join(pathToSave, 'trainedNN', mode, str(batchSize), str(nHiddneUnits))
 paths.checkpointRoot    = os.path.join(paths.saveRoot, 'tflowCheckpoints')
 paths.saveDir           = case
-paths.savePrefix        = 'NN'
+#if mode=='regression':
+#	paths.savePrefix        = 'NN'
+#elif mode=='classification':
+paths.savePrefix        = 'NN'+str(batchSize)+'_'+str(nHiddneUnits)
 
 
 
